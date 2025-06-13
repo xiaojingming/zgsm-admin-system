@@ -18,21 +18,46 @@ import CommonContent from '@/components/common-content.vue'
 import { themeOverrides } from '@/theme-overrides'
 import { getHashToken, setToken } from '@/utils/token'
 import { getUserToken } from './api/mods/quota.mod'
+import { useUserStore } from '@/store/user'
+import { getUserInfo } from '@/api/mods/quota.mod'
+import { onMounted } from 'vue'
 
 const hashToken = getHashToken()
 
-if (hashToken) {
-	setToken(hashToken)
+onMounted(() => {
+	if (hashToken) {
+		setToken(hashToken)
 
-	getUserToken().then(res => {
-		if (!res.access_token) {
-			return
-		}
-		
-		setToken(res.access_token)
+		getUserToken().then(res => {
+			if (!res.access_token) {
+				return
+			}
+			setToken(res.access_token)
+		}).then(() => {
+			fetchUserInfo()
+		})
+	} else {
+		fetchUserInfo()
+	}
+})
+
+const { updateUserInfo } = useUserStore()
+
+const fetchUserInfo = async () => {
+	const { data } = await getUserInfo()
+
+	if (!data) {
+		return
+	}
+
+	updateUserInfo({
+		githubAccount: data.email || '',
+		phoneNumber: data.phone || '',
+		userId: data.uuid || '',
+		employeeNumber: data.employee_number || '',
+		githubName: data.githubName || ''
 	})
 }
-
 </script>
 
 <style lang="less" scoped>

@@ -183,8 +183,8 @@ const tabs = computed(() => [
 
 const columns = computed(() => [
     {
-        type: 'selection',
-        fixed: 'left',
+        type: 'selection' as const,
+        key: 'selection',
     },
     {
         title: t('creditTransferModal.expiryDateColumn'),
@@ -197,7 +197,7 @@ const columns = computed(() => [
     },
     {
         title: t('creditTransferModal.transferOutCreditColumn'),
-        key: 'amount',
+        key: 'transferAmount',
         render: (row: RowData) => {
             return h(NInputNumber, {
                 value: row.transferAmount,
