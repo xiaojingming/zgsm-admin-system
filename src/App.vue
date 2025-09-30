@@ -28,12 +28,21 @@ import { themeOverrides } from '@/theme-overrides';
     justify-content: space-between;
     box-sizing: border-box;
     background-color: #000;
+    // overflow: auto;
 
     .content {
         flex: 1;
         overflow: auto;
         padding: 0 48px;
         box-sizing: border-box;
+    }
+}
+
+@media screen and (max-width: 375px) {
+    .app-container {
+        .content {
+            padding: 0 16px;
+        }
     }
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
     <div class="credit-reward-plan mt-10">
-        <div class="text-center text-[28px] font-semibold">{{ t('rewardPlan.title') }}</div>
+        <div class="text-center text-3xl font-semibold">{{ t('rewardPlan.title') }}</div>
 
         <div class="mt-8">
             <p>{{ t('rewardPlan.introTitle') }}</p>
@@ -186,7 +186,7 @@
                                 <component :is="step.headerRender()"></component>
                             </template>
                             <template #icon>
-                                <div class="custom-timeline-icon">{{ step.index }}</div>
+                                <div class="custom-timeline-icon w-6 h-6">{{ step.index }}</div>
                             </template>
                             <template #default>
                                 <div class="text-white leading-5 font-medium">
@@ -481,6 +481,7 @@ const qaContent = computed(() => createQaContent(t, isZh.value));
     // Credit奖励计划页面样式
     width: 1105px;
     margin: auto;
+    max-width: 100%;
 }
 
 .opertion-rule {
@@ -493,8 +494,8 @@ const qaContent = computed(() => createQaContent(t, isZh.value));
 }
 
 .custom-timeline-icon {
-    width: 24px;
-    height: 24px;
+    // width: 24px;
+    // height: 24px;
     border-radius: 50%;
     background: #00ca90;
     border: 2px solid #00ca90;
@@ -508,5 +509,12 @@ const qaContent = computed(() => createQaContent(t, isZh.value));
 
 .credit-unit {
     color: rgba(18, 255, 187);
+}
+
+@media screen and (max-width: 375px) {
+    .credit-reward-plan {
+        width: 370px !important;
+        margin: auto;
+    }
 }
 </style>
