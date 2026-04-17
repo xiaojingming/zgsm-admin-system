@@ -9,15 +9,15 @@ export function setupAuthGuard(router: Router) {
     router.beforeEach(async (to, from, next) => {
         try {
             // 处理年度总结封面页的特殊逻辑
-            if (to.path === '/annual-summary-cover') {
-                const authResult = await authService.authenticate();
-                if (authResult.success) {
-                    next('/annual-summary');
-                } else {
-                    next();
-                }
-                return;
-            }
+            // if (to.path === '/annual-summary-cover') {
+            //     const authResult = await authService.authenticate(router);
+            //     if (authResult.success) {
+            //         next('/annual-summary');
+            //     } else {
+            //         next();
+            //     }
+            //     return;
+            // }
 
             // 检查是否为公开路由或登录页面
             if (PUBLIC_ROUTES.includes(to.path) || to.path === '/login') {
@@ -38,7 +38,7 @@ export function setupAuthGuard(router: Router) {
 
             // 在后台进行认证，不阻塞页面渲染
             authService
-                .authenticate()
+                .authenticate(router)
                 .then((authResult) => {
                     if (!authResult.success) {
                         // 记录目标路径，登录后跳回
