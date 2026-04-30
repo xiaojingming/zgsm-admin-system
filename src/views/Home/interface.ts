@@ -61,4 +61,5 @@ export interface InvoiceModalFormData {
     bank: string;
     bankAccount: string;
     email: string;
+    mobile: string;
 }

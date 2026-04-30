@@ -79,6 +79,7 @@
                                 >{{ t('invoiceModal.invoiceType.vat') }}</n-radio
                             >
                             <n-radio
+                                v-if="isCompany"
                                 :value="invoiceConstants.INVOICE_TYPE.SPECIAL"
                                 class="radio-item"
                                 >{{ t('invoiceModal.invoiceType.special') }}</n-radio
@@ -96,7 +97,7 @@
                     >
                         <n-input
                             v-model:value="formData.title"
-                            :placeholder="t('invoiceModal.invoiceTitle.companyPlaceholder')"
+                            :placeholder="isCompany ? t('invoiceModal.invoiceTitle.companyPlaceholder') : t('invoiceModal.invoiceTitle.personalPlaceholder')"
                             class="dark-input"
                         />
                     </n-form-item>
@@ -121,7 +122,7 @@
                         v-if="isCompany"
                         path="address"
                         :label="t('invoiceModal.address.label')"
-                        :show-feedback="false"
+                        :show-feedback="showAddressFeedback"
                         class="form-item"
                     >
                         <n-input
@@ -136,7 +137,7 @@
                         v-if="formData.headerType === invoiceConstants.HEADER_TYPE.COMPANY"
                         path="phone"
                         :label="t('invoiceModal.phone.label')"
-                        :show-feedback="false"
+                        :show-feedback="showPhoneFeedback"
                         class="form-item"
                     >
                         <n-input
@@ -151,7 +152,7 @@
                         v-if="formData.headerType === invoiceConstants.HEADER_TYPE.COMPANY"
                         path="bank"
                         :label="t('invoiceModal.bank.label')"
-                        :show-feedback="false"
+                        :show-feedback="showBankFeedback"
                         class="form-item"
                     >
                         <n-input
@@ -166,12 +167,27 @@
                         v-if="formData.headerType === invoiceConstants.HEADER_TYPE.COMPANY"
                         path="bankAccount"
                         :label="t('invoiceModal.bankAccount.label')"
-                        :show-feedback="false"
+                        :show-feedback="showBankAccountFeedback"
                         class="form-item"
                     >
                         <n-input
                             v-model:value="formData.bankAccount"
                             :placeholder="t('invoiceModal.bankAccount.placeholder')"
+                            class="dark-input"
+                        />
+                    </n-form-item>
+
+                    <!-- 手机号 - 仅个人类型显示 -->
+                    <n-form-item
+                        v-if="!isCompany"
+                        path="mobile"
+                        :label="t('invoiceModal.mobile.label')"
+                        :show-feedback="showMobileFeedback"
+                        class="form-item"
+                    >
+                        <n-input
+                            v-model:value="formData.mobile"
+                            :placeholder="t('invoiceModal.mobile.placeholder')"
                             class="dark-input"
                         />
                     </n-form-item>
@@ -231,7 +247,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import {
     NModal,
     NButton,
@@ -285,11 +301,11 @@ const invoiceTitleRef = ref<FormItemInst | null>(null);
 const showTitleFeedback = ref(false);
 const showEmailFeedback = ref(false);
 const showTaxNumberFeedback = ref(false);
-
-// 判断是否为企业类型
-const isCompany = computed(
-    () => formData.value.headerType === invoiceConstants.value.HEADER_TYPE.COMPANY,
-);
+const showMobileFeedback = ref(false);
+const showAddressFeedback = ref(false);
+const showPhoneFeedback = ref(false);
+const showBankFeedback = ref(false);
+const showBankAccountFeedback = ref(false);
 
 // 初始表单数据
 const initialFormData: InvoiceModalFormData = {
@@ -302,10 +318,56 @@ const initialFormData: InvoiceModalFormData = {
     bank: '', // 开户银行
     bankAccount: '', // 银行账号
     email: '', // 收票邮箱
+    mobile: '', // 手机号
 };
 
 // 表单数据
 const formData = ref<InvoiceModalFormData>({ ...initialFormData });
+
+// 判断是否为企业类型
+const isCompany = computed(
+    () => formData.value.headerType === invoiceConstants.value.HEADER_TYPE.COMPANY,
+);
+
+// 判断是否为专用发票
+const isSpecialInvoice = computed(
+    () => formData.value.invoiceType === invoiceConstants.value.INVOICE_TYPE.SPECIAL,
+);
+
+// 当抬头类型切换时，清空校验并强制个人类型为普通发票
+watch(
+    () => formData.value.headerType,
+    (newVal) => {
+        formRef.value?.restoreValidation();
+        showTitleFeedback.value = false;
+        showTaxNumberFeedback.value = false;
+        showAddressFeedback.value = false;
+        showPhoneFeedback.value = false;
+        showBankFeedback.value = false;
+        showBankAccountFeedback.value = false;
+        showMobileFeedback.value = false;
+        showEmailFeedback.value = false;
+        if (newVal === invoiceConstants.value.HEADER_TYPE.PERSONAL) {
+            formData.value.invoiceType = invoiceConstants.value.INVOICE_TYPE.VAT;
+        }
+    },
+);
+
+// 当发票类型切换时，清空校验
+watch(
+    () => formData.value.invoiceType,
+    () => {
+        formRef.value?.restoreValidation();
+        showTitleFeedback.value = false;
+        showTaxNumberFeedback.value = false;
+        showAddressFeedback.value = false;
+        showPhoneFeedback.value = false;
+        showBankFeedback.value = false;
+        showBankAccountFeedback.value = false;
+        showMobileFeedback.value = false;
+        showEmailFeedback.value = false;
+    },
+);
 
 // 动态计算表单验证规则
 const formRules = computed(() => {
@@ -357,16 +419,69 @@ const formRules = computed(() => {
         } as FormItemRule;
 
         rules.taxNumber = {
+            required: true,
+            trigger: ['blur', 'input'],
             validator: (rule: FormItemRule, value: string) => {
-                if (value && !/^[0-9A-Z]{18}$/.test(value)) {
+                if (!value) {
+                    showTaxNumberFeedback.value = true;
+                    return new Error(t('invoiceModal.validation.enterTaxNumber'));
+                }
+                if (!/^[0-9A-Z]{18}$/.test(value)) {
                     showTaxNumberFeedback.value = true;
                     return new Error(t('invoiceModal.validation.taxNumberFormatInvalid'));
                 }
                 showTaxNumberFeedback.value = false;
-
                 return true;
             },
+        } as FormItemRule;
+
+        // 专用发票下必填，普通发票下选填
+        rules.address = {
             trigger: ['blur', 'input'],
+            validator: (rule: FormItemRule, value: string) => {
+                if (isSpecialInvoice.value && !value) {
+                    showAddressFeedback.value = true;
+                    return new Error(t('invoiceModal.validation.enterAddress'));
+                }
+                showAddressFeedback.value = false;
+                return true;
+            },
+        } as FormItemRule;
+
+        rules.phone = {
+            trigger: ['blur', 'input'],
+            validator: (rule: FormItemRule, value: string) => {
+                if (isSpecialInvoice.value && !value) {
+                    showPhoneFeedback.value = true;
+                    return new Error(t('invoiceModal.validation.enterCompanyPhone'));
+                }
+                showPhoneFeedback.value = false;
+                return true;
+            },
+        } as FormItemRule;
+
+        rules.bank = {
+            trigger: ['blur', 'input'],
+            validator: (rule: FormItemRule, value: string) => {
+                if (isSpecialInvoice.value && !value) {
+                    showBankFeedback.value = true;
+                    return new Error(t('invoiceModal.validation.enterBank'));
+                }
+                showBankFeedback.value = false;
+                return true;
+            },
+        } as FormItemRule;
+
+        rules.bankAccount = {
+            trigger: ['blur', 'input'],
+            validator: (rule: FormItemRule, value: string) => {
+                if (isSpecialInvoice.value && !value) {
+                    showBankAccountFeedback.value = true;
+                    return new Error(t('invoiceModal.validation.enterBankAccount'));
+                }
+                showBankAccountFeedback.value = false;
+                return true;
+            },
         } as FormItemRule;
     }
     // 个人类型的必填字段
@@ -374,13 +489,34 @@ const formRules = computed(() => {
         rules.title = {
             required: true,
             message: t('invoiceModal.validation.invoiceTitleEmpty'),
-            trigger: ['blur', 'change'],
+            trigger: ['blur', 'input'],
             validator: (rule: FormItemRule, value: string) => {
                 if (!value) {
                     showTitleFeedback.value = true;
                     return new Error(t('invoiceModal.validation.invoiceTitleEmpty'));
                 }
+                if (!/^[^0-9].{1,}$/.test(value)) {
+                    showTitleFeedback.value = true;
+                    return new Error(t('invoiceModal.validation.invoiceTitleInvalid'));
+                }
                 showTitleFeedback.value = false;
+                return true;
+            },
+        } as FormItemRule;
+
+        rules.mobile = {
+            required: true,
+            trigger: ['blur', 'input'],
+            validator: (rule: FormItemRule, value: string) => {
+                if (!value) {
+                    showMobileFeedback.value = true;
+                    return new Error(t('invoiceModal.validation.enterMobile'));
+                }
+                if (!/^1[3-9]\d{9}$/.test(value)) {
+                    showMobileFeedback.value = true;
+                    return new Error(t('invoiceModal.validation.mobileFormatInvalid'));
+                }
+                showMobileFeedback.value = false;
                 return true;
             },
         } as FormItemRule;
@@ -397,6 +533,11 @@ const closeModal = () => {
     showTitleFeedback.value = false;
     showEmailFeedback.value = false;
     showTaxNumberFeedback.value = false;
+    showMobileFeedback.value = false;
+    showAddressFeedback.value = false;
+    showPhoneFeedback.value = false;
+    showBankFeedback.value = false;
+    showBankAccountFeedback.value = false;
 };
 
 const submitForm = async () => {
@@ -421,6 +562,8 @@ const submitForm = async () => {
             requestData.company_phone = formData.value.phone;
             requestData.bank_name = formData.value.bank;
             requestData.bank_account = formData.value.bankAccount;
+        } else {
+            requestData.receive_phone = formData.value.mobile;
         }
 
         const response = await postCreateInvoice(requestData);
